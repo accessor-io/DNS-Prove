@@ -33,7 +33,7 @@ DNSSEC Proof is a tool designed to convince an Ethereum DNSSEC oracle of the con
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/dnssec_proof.git
+   git clone https://github.com/accessor-io/dnssec_proof.git
    cd dnssec_proof
 
     Install the package and dependencies:
