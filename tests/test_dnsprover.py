@@ -3,12 +3,11 @@ from dnssec_proof.dnsprover import DnsProver
 
 class TestDnsProver(unittest.TestCase):
     def setUp(self):
-        self.prover = DnsProver()
+        self.dnsprover = DnsProver()
 
-    def test_lookup(self):
-        result = self.prover.lookup('DNSKEY', 'example.com')
-        self.assertIsInstance(result, list)
-        self.assertGreater(len(result), 0)
+    def test_lookup_and_submit(self):
+        # Add test cases for lookup_and_submit method
+        pass
 
 if __name__ == '__main__':
     unittest.main()

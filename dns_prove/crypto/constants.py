@@ -1,0 +1,6 @@
+# Security constants
+MIN_KEY_SIZE = 256  # bits
+MAX_SIGNATURE_AGE = 3600  # seconds
+SUPPORTED_ALGORITHMS = [
+    "ECDSA-SECP256K1-SHA256",
+] 

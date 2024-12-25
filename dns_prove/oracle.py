@@ -7,7 +7,7 @@ class Oracle:
         self.contract = self.web3.eth.contract(address=self.contract_address, abi=self.get_abi())
 
     def get_abi(self):
-        # Replace iwth ABI
+        # Replace with actual ABI
         return []
 
     def submit_proof(self, proof):
@@ -18,3 +18,4 @@ class Oracle:
     def get_proof(self, proof_id):
         return self.contract.functions.getProof(proof_id).call()
 
+    # Add more functions as needed...
