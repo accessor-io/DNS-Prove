@@ -9,21 +9,17 @@ def build_proof(name, rrsig, rrset):
     return proof
 
 def construct_rrsig(name, type, ttl, algorithm, key, signature):
+    """Construct an RRSIG record"""
     return {
         "name": name,
-        "type": type,
+        "type": "RRSIG",
         "ttl": ttl,
         "class": "IN",
         "flush": False,
         "data": {
             "typeCovered": type,
             "algorithm": algorithm,
-            "labels": 0,
-            "originalTTL": ttl,
-            "expiration": 2528174800,
-            "inception": 1526834834,
-            "keyTag": 5647,
-            "signersName": name,
+            "key": key,
             "signature": signature
         }
     }
@@ -43,4 +39,7 @@ def construct_rrset(name, type, ttl, flags, algorithm, key):
     }
 
 def hash_data(data):
-    return hashlib.sha256(data.encode()).hexdigest()
+    """Hash data using SHA256"""
+    if isinstance(data, str):
+        data = data.encode()
+    return hashlib.sha256(data).digest()
