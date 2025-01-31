@@ -9,7 +9,9 @@ class TestOracle(unittest.TestCase):
         self.oracle_address = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
         # Create a mock Web3 instance
         self.w3_mock = Mock()
-        self.w3_mock.eth.contract.return_value = Mock()
+        self.contract_mock = Mock()
+        self.contract_mock.address = self.oracle_address
+        self.w3_mock.eth.contract.return_value = self.contract_mock
         self.w3_mock.is_connected.return_value = True
         self.oracle = Oracle(self.oracle_address, self.w3_mock)
 
