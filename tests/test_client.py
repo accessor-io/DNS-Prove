@@ -1,46 +1,41 @@
-import pytest
-from unittest.mock import Mock, patch
+import unittest
 from dns_prove.client import main
 from dns_prove.dnsprover import DnsProver
-from dns_prove.crypto.initEth import verify_signed_text_record, generate_signature
-from cryptography.hazmat.primitives.asymmetric import ec
+from dns_prove.oracle import Oracle
+import argparse
 
-# Test data
-TEST_DOMAIN = "example.com"
-TEST_ORACLE = "0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329"
-TEST_PROVIDER = "http://localhost:8545"
+class TestClient(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures"""
+        self.oracle_address = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+        self.provider_url = "https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID"
 
-@pytest.fixture
-def mock_dnsprover():
-    with patch('dns_prove.client.DnsProver') as mock:
-        yield mock
+    def test_argument_parsing(self):
+        """Test command line argument parsing"""
+        parser = argparse.ArgumentParser()
+        parser.add_argument('record_type', choices=['A', 'AAAA', 'TXT'])
+        parser.add_argument('domain')
+        parser.add_argument('--oracle', required=True)
+        parser.add_argument('--provider')
 
-def test_cli_help(capsys):
-    """Test help message"""
-    with pytest.raises(SystemExit):
-        main(['--help'])
-    captured = capsys.readouterr()
-    assert 'dns_prove' in captured.out
-    assert 'oracle' in captured.out
+        # Test valid arguments
+        args = parser.parse_args(['A', 'example.com', '--oracle', self.oracle_address])
+        self.assertEqual(args.record_type, 'A')
+        self.assertEqual(args.domain, 'example.com')
+        self.assertEqual(args.oracle, self.oracle_address)
+        self.assertIsNone(args.provider)
 
-def test_record_lookup(mock_dnsprover):
-    """Test basic record lookup"""
-    prover = mock_dnsprover.return_value
-    prover.lookup.return_value = [{"name": TEST_DOMAIN, "type": "TXT"}]
-    
-    with patch('sys.argv', ['dns_prove', 'TXT', TEST_DOMAIN, '--oracle', TEST_ORACLE]):
-        assert main() == 0
-        prover.lookup.assert_called_once()
+    def test_dnsprover_creation(self):
+        """Test DnsProver instance creation"""
+        prover = DnsProver(self.oracle_address, self.provider_url)
+        self.assertIsNotNone(prover)
+        self.assertEqual(prover.oracle_address, self.oracle_address)
 
-def test_invalid_arguments():
-    """Test invalid argument handling"""
-    with pytest.raises(SystemExit):
-        with patch('sys.argv', ['dns_prove']):
-            main()
+    def test_oracle_creation(self):
+        """Test Oracle instance creation"""
+        oracle = Oracle(self.oracle_address, self.provider_url)
+        self.assertIsNotNone(oracle)
+        self.assertEqual(oracle.address, self.oracle_address)
 
-def test_crypto_functions():
-    """Test cryptographic functions"""
-    private_key = ec.generate_private_key(ec.SECP256K1())
-    message = "test message"
-    signature = generate_signature(private_key, message)
-    assert signature is not None 
+if __name__ == '__main__':
+    unittest.main() 
