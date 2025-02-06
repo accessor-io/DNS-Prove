@@ -1,1 +1,125 @@
- 
+name: Create Project Issues
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    paths:
+      - '.github/ISSUE_TEMPLATE/**'
+    branches:
+      - main
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Create Test Suite Issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Fix Test Suite and Improve Coverage',
+            body: `Current test suite has several failures and low coverage areas that need to be addressed.
+
+            Tasks:
+            - [ ] Fix TestOracle to include ABI in contract mock expectations
+            - [ ] Fix Web3 provider mocking in DnsProver tests
+            - [ ] Fix DNS resolver mocking in lookup tests
+            - [ ] Add proper cleanup in TestCLI for sys.stdout redirection
+            - [ ] Add tests for crypto module (currently 0% coverage)
+            - [ ] Increase coverage for client.py (currently 18%)
+            - [ ] Add more tests for dnsprover.py (currently 17%)
+            - [ ] Add tests for oracle.py error cases (currently 47%)`,
+            labels: ['bug', 'testing']
+          });
+
+    - name: Create Test Infrastructure Issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Improve Test Infrastructure',
+            body: `Set up proper test infrastructure to support maintainable and reliable tests.
+
+            Tasks:
+            - [ ] Add pytest.ini configuration file
+            - [ ] Set up proper test environment variables
+            - [ ] Add test fixtures for common test data
+            - [ ] Add test helpers for repeated mock setups
+            - [ ] Add type hints to test functions
+            - [ ] Add better test documentation
+            - [ ] Organize tests into logical groups`,
+            labels: ['enhancement', 'testing']
+          });
+
+    - name: Create Test Scenarios Issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Add Additional Test Scenarios',
+            body: `Add comprehensive test scenarios to cover edge cases and error conditions.
+
+            Tasks:
+            - [ ] Test error handling for network failures
+            - [ ] Test contract interaction failures
+            - [ ] Test DNS resolution timeouts
+            - [ ] Test invalid Ethereum addresses
+            - [ ] Test malformed DNS records
+            - [ ] Test edge cases in DNS record formats
+            - [ ] Test ENS domain resolution edge cases`,
+            labels: ['enhancement', 'testing']
+          });
+
+    - name: Create CI/CD Issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Improve CI/CD Pipeline',
+            body: `Enhance the continuous integration and deployment pipeline.
+
+            Tasks:
+            - [ ] Add test matrix for different Python versions
+            - [ ] Add test caching
+            - [ ] Add test result reporting
+            - [ ] Add coverage reporting to CI
+            - [ ] Add automatic documentation deployment
+            - [ ] Add dependency scanning
+            - [ ] Add security scanning`,
+            labels: ['enhancement', 'devops']
+          });
+
+    - name: Create Project Board
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Create project board
+          const project = await github.rest.projects.createForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'DNS-Prove Development',
+            body: 'Development tracking for DNS-Prove improvements'
+          });
+
+          // Create columns
+          const columns = ['To Do', 'In Progress', 'Review', 'Done'];
+          for (const column of columns) {
+            await github.rest.projects.createColumn({
+              project_id: project.data.id,
+              name: column
+            });
+          } 
