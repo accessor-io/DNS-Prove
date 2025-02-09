@@ -52,7 +52,7 @@ Examples:
         dnsprover = DnsProver(args.oracle, args.provider)
 
         # Fetch DNS information
-        records = dnsprover.lookup(args.record_type, args.domain)
+        records = dnsprover.lookup_dns_record(args.record_type, args.domain)
 
         if not records:
             print(f"No {args.record_type} records found for {args.domain}")
@@ -62,7 +62,7 @@ Examples:
         for record in records:
             try:
                 proof = build_proof(record['name'], record['rrsig'], record['rrset'])
-                oracle.submit_proof(proof)
+                dnsprover.submit_proof(proof)
                 print(f"Successfully submitted proof for {record['name']}")
             except Exception as e:
                 print(f"Error submitting proof for {record['name']}: {e}")

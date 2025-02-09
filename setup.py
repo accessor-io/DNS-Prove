@@ -47,7 +47,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dns-prove=dns_prove.client:main",
+            "dns-prove-py=dns_prove.client:main",
         ],
     },
 )

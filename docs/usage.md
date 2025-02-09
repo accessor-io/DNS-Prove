@@ -19,8 +19,8 @@ is_owner = prover.verify_signed_text_record("example.com", "0x123...789")
 
 ```bash
 # Look up TXT record
-dns-prove TXT example.com --oracle 0x123...789
+dns-prove-py TXT example.com --oracle 0x123...789
 
 # Verify domain ownership
-dns-prove TXT example.com --oracle 0x123...789 --verify 0x456...abc
+dns-prove-py TXT example.com --oracle 0x123...789 --verify 0x456...abc
 ``` 

@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from web3 import Web3
 from dns_prove.oracle import Oracle
+from dns_prove.abi import dnssec_oracle_abi
 
 class TestOracle(unittest.TestCase):
     def setUp(self):
@@ -28,11 +29,11 @@ class TestOracle(unittest.TestCase):
 
     def test_oracle_contract(self):
         """Test Oracle contract interface"""
-        self.assertIsNotNone(self.oracle.contract)
-        self.assertEqual(self.oracle.contract.address, self.oracle_address)
         self.w3_mock.eth.contract.assert_called_once_with(
-            address=self.oracle_address
+            address=self.oracle_address,
+            abi=dnssec_oracle_abi
         )
+        self.assertEqual(self.oracle.contract.address, self.oracle_address)
 
 if __name__ == '__main__':
     unittest.main()

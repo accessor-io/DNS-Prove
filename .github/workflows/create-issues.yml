@@ -14,6 +14,7 @@ jobs:
     permissions:
       issues: write
       contents: read
+      projects: write
 
     steps:
     - uses: actions/checkout@v3
@@ -21,8 +22,9 @@ jobs:
     - name: Create Test Suite Issue
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          await github.rest.issues.create({
+          const issue = await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: 'Fix Test Suite and Improve Coverage',
@@ -39,12 +41,14 @@ jobs:
             - [ ] Add tests for oracle.py error cases (currently 47%)`,
             labels: ['bug', 'testing']
           });
+          return issue.data.number;
 
     - name: Create Test Infrastructure Issue
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          await github.rest.issues.create({
+          const issue = await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: 'Improve Test Infrastructure',
@@ -60,12 +64,14 @@ jobs:
             - [ ] Organize tests into logical groups`,
             labels: ['enhancement', 'testing']
           });
+          return issue.data.number;
 
     - name: Create Test Scenarios Issue
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          await github.rest.issues.create({
+          const issue = await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: 'Add Additional Test Scenarios',
@@ -81,12 +87,14 @@ jobs:
             - [ ] Test ENS domain resolution edge cases`,
             labels: ['enhancement', 'testing']
           });
+          return issue.data.number;
 
     - name: Create CI/CD Issue
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          await github.rest.issues.create({
+          const issue = await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: 'Improve CI/CD Pipeline',
@@ -102,24 +110,32 @@ jobs:
             - [ ] Add security scanning`,
             labels: ['enhancement', 'devops']
           });
+          return issue.data.number;
 
     - name: Create Project Board
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          // Create project board
-          const project = await github.rest.projects.createForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            name: 'DNS-Prove Development',
-            body: 'Development tracking for DNS-Prove improvements'
-          });
-
-          // Create columns
-          const columns = ['To Do', 'In Progress', 'Review', 'Done'];
-          for (const column of columns) {
-            await github.rest.projects.createColumn({
-              project_id: project.data.id,
-              name: column
+          try {
+            // Create project board
+            const project = await github.rest.projects.createForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'DNS-Prove Development',
+              body: 'Development tracking for DNS-Prove improvements'
             });
+
+            // Create columns
+            const columns = ['To Do', 'In Progress', 'Review', 'Done'];
+            for (const column of columns) {
+              await github.rest.projects.createColumn({
+                project_id: project.data.id,
+                name: column
+              });
+            }
+            console.log('Project board created successfully');
+          } catch (error) {
+            console.log('Error creating project board:', error);
+            core.setFailed(error.message);
           } 

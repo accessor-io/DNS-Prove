@@ -7,7 +7,7 @@ DNS-Prove provides a command-line interface for easy interaction with DNS record
 ### Look up DNS Records
 
 ```bash
-dns-prove <record_type> <domain> --oracle <oracle_address> [--provider <provider_url>]
+dns-prove-py <record_type> <domain> --oracle <oracle_address> [--provider <provider_url>]
 ```
 
 #### Arguments:
@@ -20,15 +20,15 @@ dns-prove <record_type> <domain> --oracle <oracle_address> [--provider <provider
 
 Look up TXT record:
 ```bash
-dns-prove TXT example.com --oracle 0x123...789
+dns-prove-py TXT example.com --oracle 0x123...789
 ```
 
 Verify domain ownership:
 ```bash
-dns-prove TXT example.com --oracle 0x123...789 --verify 0x456...abc
+dns-prove-py TXT example.com --oracle 0x123...789 --verify 0x456...abc
 ```
 
 Use custom provider:
 ```bash
-dns-prove A example.com --oracle 0x123...789 --provider https://mainnet.infura.io/v3/YOUR-PROJECT-ID
+dns-prove-py A example.com --oracle 0x123...789 --provider https://mainnet.infura.io/v3/YOUR-PROJECT-ID
 ``` 
