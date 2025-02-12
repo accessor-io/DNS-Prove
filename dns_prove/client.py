@@ -20,7 +20,7 @@ def main():
         epilog='''
 Examples:
     # Verify TXT record for a domain using Mainnet:
-    dns_prove TXT example.com --oracle 0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329 --provider https://mainnet.infura.io/v3/YOUR-PROJECT-ID
+    dns_prove TXT example.com --oracle 0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329 --provider https://mainnet.infura.io/v3/{INFURA_API_KEY}
 
     # Verify A record using local node:
     dns_prove A example.com --oracle 0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329 --provider http://localhost:8545
@@ -43,7 +43,7 @@ Examples:
                        help='Address of the DNSSEC Oracle contract (e.g., 0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329)')
     
     parser.add_argument('--provider', 
-                       help='Web3 provider URL (default: https://mainnet.infura.io/v3/YOUR-PROJECT-ID)')
+                       help='Web3 provider URL (default: https://mainnet.infura.io/v3/{INFURA_API_KEY})')
 
     args = parser.parse_args()
 

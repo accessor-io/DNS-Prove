@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="dns-prove",
+    name="dns_prove",
     version="1.2",
     author="Cory Thorbeck",
     author_email="acc@accessor.io",
@@ -30,6 +30,13 @@ setup(
         "dnspython>=2.4.2",
         "cryptography>=41.0.0",
         "eth-utils>=2.2.0",
+        "eth-abi>=4.0.0",
+        "eth-account>=0.8.0",
+        "python-dotenv>=1.0.0",
+        "tqdm>=4.65.0",
+        "pyyaml>=6.0",
+        "fastapi>=0.68.0",
+        "prometheus-client>=0.16.0",
     ],
     extras_require={
         "dev": [
@@ -47,7 +54,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "dns-prove-py=dns_prove.client:main",
+            "dns-prove=dns_prove.dnsprover:main",
         ],
     },
 )

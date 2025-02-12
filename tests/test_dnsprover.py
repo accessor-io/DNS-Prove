@@ -160,6 +160,26 @@ class TestDnsProver(unittest.TestCase):
         result = self.dnsprover.lookup_dns_record(None, "example.com")
         self.assertIsNone(result)
 
+    def test_proof_encoding(self):
+        """Test proof encoding for contract submission"""
+        domain = "test.eth"
+        record_type = "TXT"
+        
+        # Mock the DNS lookup
+        with patch.object(self.dnsprover, 'lookup_dns_record') as mock_lookup:
+            mock_lookup.return_value = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+            
+            proof = self.dnsprover.construct_proof(record_type, domain)
+            
+            # Verify proof is bytes
+            self.assertIsInstance(proof, bytes)
+            
+            # Verify proof can be submitted
+            with patch.object(self.dnsprover.oracle.functions, 'verifySignedTextRecord') as mock_verify:
+                mock_verify.return_value.transact.return_value = b'0x1234'
+                self.dnsprover.submit_proof(proof)
+                mock_verify.assert_called_once()
+
 class TestCLI(unittest.TestCase):
     @patch('dns_prove.client.DnsProver')
     def test_cli_txt_lookup(self, mock_dnsprover):

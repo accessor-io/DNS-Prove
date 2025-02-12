@@ -40,5 +40,16 @@ class TestCrypto(unittest.TestCase):
         result = verify_signed_text_record("invalid_record", self.public_key)
         self.assertFalse(result)
 
+    def test_proof_encoding(self):
+        """Test proof data encoding"""
+        proof_data = {
+            'rrset': b'test_rrset',
+            'sig': b'test_sig'
+        }
+        
+        encoded = self.test_prover._encode_proof(proof_data)
+        self.assertIsInstance(encoded, bytes)
+        self.assertGreater(len(encoded), 0)
+
 if __name__ == '__main__':
     unittest.main() 

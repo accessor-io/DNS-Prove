@@ -8,6 +8,7 @@ Welcome to DNS-Prove's documentation!
    installation
    usage
    cli
+   api_endpoints
    advanced
    api
    contributing

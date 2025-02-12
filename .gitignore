@@ -44,6 +44,7 @@ dns_prove_python/
 # Local development settings
 .env.local
 .env.*.local
+.env
 
 # Test coverage
 htmlcov/

@@ -9,9 +9,26 @@ import dns.rdtypes.ANY.DS
 import dns.rdtypes.ANY.RRSIG
 from web3 import Web3
 import eth_utils
-from .crypto.initEth import verify_signed_text_record
-from .utils import build_proof, construct_rrsig, construct_rrset
-from .abi import dnssec_oracle_abi
+from dns_prove.crypto.initEth import verify_signed_text_record
+from dns_prove.utils import build_proof, construct_rrsig, construct_rrset
+from dns_prove.abi import dnssec_oracle_abi
+import os
+from dotenv import load_dotenv
+from eth_abi.abi import encode
+from dns_prove.logger import setup_logging
+
+# Get the project root directory
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(project_root, '.env')
+
+# Add debug output
+print(f"Current directory: {os.getcwd()}")
+print(f"Project root: {project_root}")
+print(f"Looking for .env at: {env_path}")
+print(f"Loading .env file...")
+load_dotenv(dotenv_path=env_path)
+print(f"Loaded .env file. Path exists: {os.path.exists(env_path)}")
+print(f"Environment after loading: {os.environ.get('WEB3_PROVIDER')}")
 
 # ENS Registry ABI (complete set of required functions)
 ENS_REGISTRY_ABI = [
@@ -66,22 +83,42 @@ ENS_RESOLVER_ABI = [
     }
 ]
 
+logger = setup_logging()
+
 class DnsProver:
-    def __init__(self, oracle_address, provider_url=None):
-        # Initialize Web3 provider
-        if provider_url:
-            self.provider = Web3.HTTPProvider(provider_url)
-        else:
-            self.provider = Web3.HTTPProvider("https://mainnet.infura.io/v3/6686de2244c54a0dbefb2e19ce334199")
+    def __init__(self, provider_url=None):
+        logger.info("Initializing DnsProver...")
+        # Debug environment variables
+        print(f"Current environment variables: {os.environ.get('WEB3_PROVIDER')}")
         
-        self.w3 = Web3(self.provider)
+        # Try environment variable first, then argument
+        self.provider_url = provider_url or os.getenv("WEB3_PROVIDER")
+        
+        if not self.provider_url:
+            available_vars = "\n".join([k for k in os.environ if "WEB3" in k or "PROVIDER" in k])
+            raise ValueError(
+                f"Web3 provider required but not found.\n"
+                f"Tried: --provider argument and WEB3_PROVIDER environment variable\n"
+                f"Available relevant environment variables:\n{available_vars}"
+            )
+
+        # Verify the URL format
+        if not self.provider_url.startswith(("http://", "https://")):
+            raise ValueError(f"Invalid provider URL format: {self.provider_url}")
+
+        print(f"Using provider: {self.provider_url}")
+        self.w3 = Web3(Web3.HTTPProvider(self.provider_url))
         
         # Verify connection
         if not self.w3.is_connected():
             raise ConnectionError("Could not connect to Ethereum provider")
         
         print(f"Connected to network: {self.w3.eth.chain_id}")
-        self.oracle = self.w3.eth.contract(address=oracle_address, abi=dnssec_oracle_abi)
+        # ENS DNSSEC Oracle mainnet address
+        self.oracle = self.w3.eth.contract(
+            address=Web3.to_checksum_address("0x226159d592E2b063810a10Ebf6cF7A7bAD0193a6"),
+            abi=dnssec_oracle_abi
+        )
         self.resolver = dns.resolver.Resolver()
         
         # Initialize resolver with DNSSEC
@@ -90,7 +127,7 @@ class DnsProver:
         
         # ENS Registry contract (Mainnet)
         self.ens_registry = self.w3.eth.contract(
-            address="0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",  # ENS Registry on mainnet
+            address=Web3.to_checksum_address("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"),  # ENS Registry on mainnet
             abi=ENS_REGISTRY_ABI
         )
 
@@ -280,7 +317,7 @@ class DnsProver:
                 name=domain,
                 type=record_type,
                 ttl=300,  # Default TTL
-                algorithm=dnskey.algorithm if dnskey else 13,  # Use actual algorithm or default to ECDSAP256SHA256
+                algorithm=dnskey.algorithm if dnskey else 13,
                 key=dnskey.to_text() if dnskey else "no-key",
                 signature=ds.digest if ds else b"no-signature"
             )
@@ -290,22 +327,45 @@ class DnsProver:
                 name=domain,
                 type=record_type,
                 ttl=300,
-                flags=256,  # Default flags
+                flags=256,
                 algorithm=dnskey.algorithm if dnskey else 13,
                 key=record
             )
 
-            # Build the complete proof
-            return build_proof(domain, rrsig_record, rrset_record)
+            # Build and encode the proof
+            proof_dict = build_proof(domain, rrsig_record, rrset_record)
+            # Convert to RLP encoded format that the contract expects
+            proof_types = ['bytes']
+            proof_values = [Web3.to_bytes(text=str(proof_dict))]
+            return encode(proof_types, proof_values)
             
         except Exception as e:
             print(f"Error constructing proof: {e}")
             return None
 
     def submit_proof(self, proof):
-        tx_hash = self.oracle.functions.verifySignedTextRecord(proof).transact()
-        self.w3.eth.waitForTransactionReceipt(tx_hash)
+        if not hasattr(self, 'wallet_manager') or not self.wallet_manager.account:
+            raise ValueError("No wallet loaded. Load a wallet before submitting proofs")
+        
+        # Encode the proof dictionary into bytes
+        encoded_proof = Web3.to_bytes(text=str(proof))
+        
+        # Build transaction
+        tx = self.oracle.functions.verifySignedTextRecord(encoded_proof).build_transaction({
+            'from': self.wallet_manager.account.address,
+            'nonce': self.w3.eth.get_transaction_count(self.wallet_manager.account.address),
+            'gas': 200000,  # Estimate gas or use a safe value
+            'gasPrice': self.w3.eth.gas_price
+        })
+        
+        # Sign and send transaction
+        signed_tx = self.wallet_manager.sign_transaction(tx)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx)
+        
+        receipt = self.w3.eth.waitForTransactionReceipt(tx_hash)
         print(f"Proof submitted. Transaction hash: {tx_hash.hex()}")
+        print(f"Gas used: {receipt['gasUsed']}")
+        return receipt
 
     def verify_signed_text_record(self, domain, address):
         """Verify a signed TXT record proving domain ownership"""
@@ -336,12 +396,11 @@ def main():
     parser.add_argument('record_type', choices=['A', 'AAAA', 'TXT'],
                         help='Type of DNS record to fetch')
     parser.add_argument('domain', help='Domain name to fetch DNS information for')
-    parser.add_argument('--oracle', required=True, help='Address of the DNSSEC Oracle contract')
-    parser.add_argument('--provider', help='Web3 provider URL (optional)')
+    parser.add_argument('--provider', required=False, help='Web3 provider URL (e.g. Infura/Alchemy endpoint)')
 
     args = parser.parse_args()
 
-    prover = DnsProver(args.oracle, args.provider)
+    prover = DnsProver(args.provider)
 
     proof = prover.construct_proof(args.record_type, args.domain)
     if proof is not None:
