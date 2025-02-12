@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, PropertyMock
 from dns_prove.dnsprover import DnsProver
 import dns.resolver
 from dns_prove.utils import build_proof
@@ -8,38 +8,41 @@ import sys
 
 class TestDnsProver(unittest.TestCase):
     def setUp(self):
-        # Mock Web3 provider
-        self.w3_patcher = patch('web3.Web3')
-        self.mock_w3 = self.w3_patcher.start()
+        # Mock Web3 provider chain
+        self.provider_patcher = patch('web3.providers.HTTPProvider', spec=True)
+        self.w3_patcher = patch('web3.Web3', spec=True)
         
-        # Mock chain_id
-        self.mock_w3.eth.chain_id = 1  # Mainnet
+        self.mock_provider_cls = self.provider_patcher.start()
+        self.mock_w3_cls = self.w3_patcher.start()
+        
+        # Create mock instances
+        self.mock_provider = self.mock_provider_cls.return_value
+        self.mock_w3_instance = self.mock_w3_cls.return_value
+        
+        # Configure chain_id mock
+        type(self.mock_w3_instance.eth).chain_id = PropertyMock(return_value=1)
         
         # Setup test instance
         self.oracle_address = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
         self.provider_url = "https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID"
-        
-        # Mock Web3 instance
-        self.mock_w3_instance = Mock()
-        self.mock_w3.HTTPProvider.return_value = self.mock_w3_instance
-        self.mock_w3.return_value = self.mock_w3_instance
-        
         self.dnsprover = DnsProver(self.oracle_address, self.provider_url)
 
     def tearDown(self):
+        self.provider_patcher.stop()
         self.w3_patcher.stop()
 
-    @patch('dns.resolver.Resolver')
+    @patch('dns_prove.dnsprover.dns.resolver.Resolver')
     def test_successful_lookup_dns_record(self, mock_resolver):
         """Test successful DNS record lookup with mock"""
-        # Mock DNS response
+        # Configure resolver mock
+        mock_resolver_instance = mock_resolver.return_value
         mock_answer = Mock()
         mock_answer.to_text.return_value = "192.168.1.1"
-        mock_resolver.return_value.resolve.return_value = [mock_answer]
+        mock_resolver_instance.resolve.return_value = [mock_answer]
 
         result = self.dnsprover.lookup_dns_record("A", "example.com")
         self.assertEqual(result, "192.168.1.1")
-        mock_resolver.return_value.resolve.assert_called_once_with("example.com", "A")
+        mock_resolver_instance.resolve.assert_called_once_with("example.com", "A")
 
     def test_lookup_with_invalid_domain(self):
         """Test DNS lookup with invalid domain"""
@@ -165,7 +168,13 @@ class TestCLI(unittest.TestCase):
 
         # Mock DNS response
         mock_instance = Mock()
-        mock_instance.lookup_dns_record.return_value = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+        mock_instance.lookup_dns_record.return_value = [{
+            'name': 'example.com',
+            'type': 'TXT',
+            'data': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+            'rrsig': {},
+            'rrset': {}
+        }]
         mock_dnsprover.return_value = mock_instance
 
         # Capture stdout
@@ -189,7 +198,7 @@ class TestCLI(unittest.TestCase):
         sys.stdout = sys.__stdout__
         output = captured_output.getvalue()
         
-        self.assertIn("0x742d35Cc6634C0532925a3b844Bc454e4438f44e", output)
+        self.assertIn("Successfully submitted proof for example.com", output)
 
     def tearDown(self):
         sys.stdout = sys.__stdout__

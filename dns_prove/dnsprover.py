@@ -68,14 +68,23 @@ ENS_RESOLVER_ABI = [
 
 class DnsProver:
     def __init__(self, oracle_address, provider_url=None):
-        self.oracle_address = oracle_address
-        self.provider = Web3.HTTPProvider(provider_url) if provider_url else Web3.HTTPProvider("https://mainnet.infura.io/v3/6686de2244c54a0dbefb2e19ce334199")
+        # Initialize Web3 provider
+        if provider_url:
+            self.provider = Web3.HTTPProvider(provider_url)
+        else:
+            self.provider = Web3.HTTPProvider("https://mainnet.infura.io/v3/6686de2244c54a0dbefb2e19ce334199")
+        
         self.w3 = Web3(self.provider)
-        print(f"Connected to network: {self.w3.eth.chain_id}")  # Debug info
+        
+        # Verify connection
+        if not self.w3.is_connected():
+            raise ConnectionError("Could not connect to Ethereum provider")
+        
+        print(f"Connected to network: {self.w3.eth.chain_id}")
         self.oracle = self.w3.eth.contract(address=oracle_address, abi=dnssec_oracle_abi)
+        self.resolver = dns.resolver.Resolver()
         
         # Initialize resolver with DNSSEC
-        self.resolver = dns.resolver.Resolver()
         self.resolver.nameservers = ['1.1.1.1']  # Cloudflare's DNS
         self.resolver.use_edns(0, dns.flags.DO, 4096)  # Enable DNSSEC
         
